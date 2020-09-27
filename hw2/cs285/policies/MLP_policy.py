@@ -86,8 +86,14 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
 
     # query the policy with observation(s) to get selected action(s)
     def get_action(self, obs: np.ndarray) -> np.ndarray:
-        # TODO: get this from hw1
-        return action
+        if len(obs.shape) > 1:
+            observation = obs
+        else:
+            observation = obs[None]
+
+        # TODO return the action that the policy prescribes
+        acts = self.forward(observation).numpy()
+        return acts
 
     # update/train this policy
     def update(self, observations, actions, **kwargs):
@@ -98,9 +104,13 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
     # through it. For example, you can return a torch.FloatTensor. You can also
     # return more flexible objects, such as a
     # `torch.distributions.Distribution` object. It's up to you!
-    def forward(self, observation: torch.FloatTensor):
-        # TODO: get this from hw1
-        return action_distribution
+    def forward(self, observation: torch.FloatTensor) -> Any:
+        if self.discrete:
+            return self.logits_na(observation)
+        observation = torch.from_numpy(observation).to(torch.float32)
+        mean = self.mean_net(observation)
+        std = torch.exp(self.logstd)*torch.normal(0, 1, size=mean.shape)
+        return mean + std
 
 
 #####################################################
@@ -125,11 +135,13 @@ class MLPPolicyPG(MLPPolicy):
             # by the `forward` method
         # HINT3: don't forget that `optimizer.step()` MINIMIZES a loss
 
-        loss = TODO
+        loss = torch.log_prob(self.forward(observations)) * 
 
         # TODO: optimize `loss` using `self.optimizer`
         # HINT: remember to `zero_grad` first
-        TODO
+        self.optimizer.zero_grad()
+        loss.backward()
+
 
         if self.nn_baseline:
             ## TODO: normalize the q_values to have a mean of zero and a standard deviation of one
@@ -163,12 +175,9 @@ class MLPPolicyPG(MLPPolicy):
             Helper function that converts `obs` to a tensor,
             calls the forward method of the baseline MLP,
             and returns a np array
-
             Input: `obs`: np.ndarray of size [N, 1]
             Output: np.ndarray of size [N]
-
         """
         obs = ptu.from_numpy(obs)
         predictions = self.baseline(obs)
         return ptu.to_numpy(predictions)[:, 0]
-
