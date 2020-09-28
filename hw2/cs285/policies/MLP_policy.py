@@ -135,22 +135,23 @@ class MLPPolicyPG(MLPPolicy):
             # by the `forward` method
         # HINT3: don't forget that `optimizer.step()` MINIMIZES a loss
 
-        loss = torch.log_prob(self.forward(observations)) * 
+        loss = -torch.mean(torch.log_prob(self.forward(observations)) * advantages)
 
         # TODO: optimize `loss` using `self.optimizer`
         # HINT: remember to `zero_grad` first
         self.optimizer.zero_grad()
         loss.backward()
+        self.optimizer.step()
 
 
         if self.nn_baseline:
             ## TODO: normalize the q_values to have a mean of zero and a standard deviation of one
             ## HINT: there is a `normalize` function in `infrastructure.utils`
-            targets = TODO
+            targets = utils.normalize(advantages, torch.mean(advantages), torch.std(advantages)) 
             targets = ptu.from_numpy(targets)
 
             ## TODO: use the `forward` method of `self.baseline` to get baseline predictions
-            baseline_predictions = TODO
+            baseline_predictions = self.baseline.forward(observations).squeeze()
             
             ## avoid any subtle broadcasting bugs that can arise when dealing with arrays of shape
             ## [ N ] versus shape [ N x 1 ]
@@ -159,11 +160,13 @@ class MLPPolicyPG(MLPPolicy):
             
             # TODO: compute the loss that should be optimized for training the baseline MLP (`self.baseline`)
             # HINT: use `F.mse_loss`
-            baseline_loss = TODO
+            baseline_loss = self.baseline_loss(baseline_predictions, targets)
 
             # TODO: optimize `baseline_loss` using `self.baseline_optimizer`
             # HINT: remember to `zero_grad` first
-            TODO
+            self.baseline_optimizer.zero_grad()
+            baseline_loss.backward()
+            self.baseline_optimizer.step()
 
         train_log = {
             'Training Loss': ptu.to_numpy(loss),
