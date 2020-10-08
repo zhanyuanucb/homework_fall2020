@@ -156,4 +156,4 @@ class PGAgent(BaseAgent):
             rewards += present*base
         return rewards
 
-        
+

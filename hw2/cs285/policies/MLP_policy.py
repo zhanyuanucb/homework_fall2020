@@ -158,17 +158,17 @@ class MLPPolicyPG(MLPPolicy):
             ## TODO: normalize the q_values to have a mean of zero and a standard deviation of one
             ## HINT: there is a `normalize` function in `infrastructure.utils`
             q_values = ptu.from_numpy(q_values).to(ptu.device)
-            targets = utils.normalize(q_values, torch.mean(q_values), torch.std(q_values)) 
+            targets = utils.normalize(q_values, torch.mean(q_values), torch.std(q_values))
             #targets = ptu.from_numpy(targets)
 
             ## TODO: use the `forward` method of `self.baseline` to get baseline predictions
             baseline_predictions = self.baseline.forward(observations).squeeze()
-            
+
             ## avoid any subtle broadcasting bugs that can arise when dealing with arrays of shape
             ## [ N ] versus shape [ N x 1 ]
             ## HINT: you can use `squeeze` on torch tensors to remove dimensions of size 1
             assert baseline_predictions.shape == targets.shape
-            
+
             # TODO: compute the loss that should be optimized for training the baseline MLP (`self.baseline`)
             # HINT: use `F.mse_loss`
             baseline_loss = self.baseline_loss(baseline_predictions, targets)
