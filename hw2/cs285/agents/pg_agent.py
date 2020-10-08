@@ -3,11 +3,11 @@ import numpy as np
 from .base_agent import BaseAgent
 from cs285.policies.MLP_policy import MLPPolicyPG
 from cs285.infrastructure.replay_buffer import ReplayBuffer
-
+from cs285.infrastructure import utils
 
 class PGAgent(BaseAgent):
     def __init__(self, env, agent_params):
-        super(PGAgent, self).__init__()
+        super(PGAgent).__init__()
 
         # init vars
         self.env = env
@@ -83,13 +83,13 @@ class PGAgent(BaseAgent):
         # Estimate the advantage when nn_baseline is True,
         # by querying the neural network that you're using to learn the baseline
         if self.nn_baseline:
-            baselines_unnormalized = self.actor.run_baseline_prediction(obs)
+            baselines_normalized = self.actor.run_baseline_prediction(obs)
             ## ensure that the baseline and q_values have the same dimensionality
             ## to prevent silent broadcasting errors
-            assert baselines_unnormalized.ndim == q_values.ndim
+            assert baselines_normalized.ndim == q_values.ndim
             ## baseline was trained with standardized q_values, so ensure that the predictions
             ## have the same mean and standard deviation as the current batch of q_values
-            baselines = baselines_unnormalized * np.std(q_values) + np.mean(q_values)
+            baselines_unnormalized = baselines_normalized * np.std(q_values) + np.mean(q_values)
             ## TODO: compute advantage estimates using q_values and baselines
             advantages = q_values - baselines_unnormalized
 
