@@ -125,7 +125,7 @@ class RL_Trainer(object):
                 self.logmetrics = False
 
             # collect trajectories, to be used for training
-            training_returns = self.collect_training_trajectories(itr, collect_policy,
+            training_returns = self.collect_training_trajectories(itr, initial_expertdata, collect_policy,
                                 self.params['batch_size'])
             paths, envsteps_this_batch, train_video_paths = training_returns
             self.total_envsteps += envsteps_this_batch
