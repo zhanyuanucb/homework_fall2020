@@ -56,7 +56,7 @@ class DQNAgent(object):
             # HINT: take random action 
                 # with probability eps (see np.random.random())
                 # OR if your current step number (see self.t) is less that self.learning_starts
-            action = np.random.choice(range(self.num_actions), size=self.batch_size, replace=True, dtype=np.int32)
+            action = np.random.randint(self.num_actions)
         else:
             # HINT: Your actor will take in multiple previous observations ("frames") in order
                 # to deal with the partial observability of the environment. Get the most recent 
@@ -70,7 +70,7 @@ class DQNAgent(object):
         # HINT2: remember the following useful function that you've seen before:
             #obs, reward, done, info = env.step(action)
         self.last_obs, reward, done, info = self.env.step(action)
-
+        
         # TODO store the result of taking this action into the replay buffer
         # HINT1: see your replay buffer's `store_effect` function
         # HINT2: one of the arguments you'll need to pass in is self.replay_buffer_idx from above
@@ -95,7 +95,7 @@ class DQNAgent(object):
 
             # TODO fill in the call to the update function using the appropriate tensors
             log = self.critic.update(
-                ob_no, ac_na, next_ob_no, reward_n, terminal_n
+                ob_no, ac_na, next_ob_no, re_n, terminal_n
             )
 
             # TODO update the target network periodically 

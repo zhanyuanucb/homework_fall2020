@@ -1,7 +1,6 @@
 import numpy as np
 import time
 import copy
-import torch
 
 ############################################
 ############################################
@@ -54,8 +53,10 @@ def mean_squared_error(a, b):
 
 ############################################
 ############################################
+
 def sample_trajectory(env, policy, max_path_length, render=False, render_mode=('rgb_array')):
     ob = env.reset()
+    #print(ob.shape)
     obs, acs, rewards, next_obs, terminals, image_obs = [], [], [], [], [], []
     steps = 0
     while True:
