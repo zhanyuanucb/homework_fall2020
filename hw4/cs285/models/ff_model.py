@@ -4,12 +4,13 @@ from torch import optim
 from cs285.models.base_model import BaseModel
 from cs285.infrastructure.utils import normalize, unnormalize
 from cs285.infrastructure import pytorch_util as ptu
+import numpy as np
 
 
 class FFModel(nn.Module, BaseModel):
 
     def __init__(self, ac_dim, ob_dim, n_layers, size, learning_rate=0.001):
-        super(FFModel, self).__init__()
+        super().__init__()
 
         self.ac_dim = ac_dim
         self.ob_dim = ob_dim
@@ -78,17 +79,22 @@ class FFModel(nn.Module, BaseModel):
                 unnormalized) output of the delta network. This is needed
         """
         # normalize input data to mean 0, std 1
-        obs_normalized = # TODO(Q1)
-        acs_normalized = # TODO(Q1)
+        obs_normalized = (obs_unnormalized-obs_mean) / obs_std # TODO(Q1)
+        acs_normalized = (acs_unnormalized-acs_mean) / acs_std # TODO(Q1)
 
         # predicted change in obs
+        obs_normalized = ptu.from_numpy(obs_normalized).to(ptu.device)
+        acs_normalized = ptu.from_numpy(acs_normalized).to(ptu.device)
+        delta_mean = ptu.from_numpy(delta_mean).to(ptu.device)
+        delta_std = ptu.from_numpy(delta_std).to(ptu.device)
+        obs_unnormalized = ptu.from_numpy(obs_unnormalized).to(ptu.device)
         concatenated_input = torch.cat([obs_normalized, acs_normalized], dim=1)
 
         # TODO(Q1) compute delta_pred_normalized and next_obs_pred
         # Hint: as described in the PDF, the output of the network is the
         # *normalized change* in state, i.e. normalized(s_t+1 - s_t).
-        delta_pred_normalized = # TODO(Q1)
-        next_obs_pred = # TODO(Q1)
+        delta_pred_normalized = self.delta_network(concatenated_input)# TODO(Q1)
+        next_obs_pred = obs_unnormalized+(delta_pred_normalized*delta_std + delta_mean)# TODO(Q1)
         return next_obs_pred, delta_pred_normalized
 
     def get_prediction(self, obs, acs, data_statistics):
@@ -105,7 +111,9 @@ class FFModel(nn.Module, BaseModel):
              - 'delta_std'
         :return: a numpy array of the predicted next-states (s_t+1)
         """
-        prediction = # TODO(Q1) get numpy array of the predicted next-states (s_t+1)
+        # print(obs)
+        assert isinstance(obs, np.ndarray), "ff_model.py #115: obs should be numpy array"
+        prediction = self(obs, acs, **data_statistics)[0]# TODO(Q1) get numpy array of the predicted next-states (s_t+1)
         # Hint: `self(...)` returns a tuple, but you only need to use one of the
         # outputs.
         return prediction
@@ -125,12 +133,25 @@ class FFModel(nn.Module, BaseModel):
              - 'delta_std'
         :return:
         """
-        target = # TODO(Q1) compute the normalized target for the model.
+        # target = (next_observations - data_statistics["obs_mean"]) / data_statistics["obs_std"]# TODO(Q1) compute the normalized target for the model.
+        delta_mean = ptu.from_numpy(data_statistics["delta_mean"]).to(ptu.device)
+        delta_std = ptu.from_numpy(data_statistics["delta_std"]).to(ptu.device)
+        target = ptu.from_numpy(next_observations - observations).to(ptu.device)
+        target = (target-delta_mean)/delta_std
+
         # Hint: you should use `data_statistics['delta_mean']` and
         # `data_statistics['delta_std']`, which keep track of the mean
         # and standard deviation of the model.
+        obs_mean, obs_std = data_statistics["obs_mean"], data_statistics["obs_std"]
+        acs_mean, acs_std = data_statistics["acs_mean"], data_statistics["acs_std"]
+        obs_normalized = (observations-obs_mean) / obs_std # TODO(Q1)
+        acs_normalized = (actions-acs_mean) / acs_std # TODO(Q1)
+        obs_normalized = ptu.from_numpy(obs_normalized).to(ptu.device)
+        acs_normalized = ptu.from_numpy(acs_normalized).to(ptu.device)
+        concatenated_input = torch.cat([obs_normalized, acs_normalized], dim=1)
 
-        loss = # TODO(Q1) compute the loss
+        y_hat = self.delta_network(concatenated_input)
+        loss = self.loss(y_hat, target)# TODO(Q1) compute the loss
         # Hint: `self(...)` returns a tuple, but you only need to use one of the
         # outputs.
 

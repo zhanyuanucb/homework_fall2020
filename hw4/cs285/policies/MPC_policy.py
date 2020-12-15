@@ -34,6 +34,9 @@ class MPCPolicy(BasePolicy):
         # TODO(Q1) uniformly sample trajectories and return an array of
         # dimensions (num_sequences, horizon, self.ac_dim) in the range
         # [self.low, self.high]
+        random_action_sequences = np.random.uniform(low=self.low, high=self.high, 
+                                                 size=(num_sequences, horizon, self.ac_dim))
+        assert isinstance(random_action_sequences, np.ndarray), "MPC_policy #39"
         return random_action_sequences
 
     def get_action(self, obs):
@@ -58,8 +61,8 @@ class MPCPolicy(BasePolicy):
             predicted_sum_of_rewards_per_model, axis=0)  # [ens, N] --> N
 
         # pick the action sequence and return the 1st element of that sequence
-        best_action_sequence = None  # TODO (Q2)
-        action_to_take = None  # TODO (Q2)
+        best_action_sequence = predicted_rewards.argmax()  # TODO (Q2)
+        action_to_take = candidate_action_sequences[best_action_sequence][0]  # TODO (Q2)
         return action_to_take[None]  # Unsqueeze the first index
 
     def calculate_sum_of_rewards(self, obs, candidate_action_sequences, model):
@@ -75,7 +78,15 @@ class MPCPolicy(BasePolicy):
         :return: numpy array with the sum of rewards for each action sequence.
         The array should have shape [N].
         """
-        sum_of_rewards = None  # TODO (Q2)
+        sum_of_rewards = np.zeros(self.N)  # TODO (Q2)
+        obs = np.tile(obs, [self.N, 1])
+        candidate_action_sequences = np.array(candidate_action_sequences)
+        for t in range(self.horizon):
+            rewards, _ = self.env.get_reward(obs, candidate_action_sequences[:, t, :])
+            sum_of_rewards += rewards
+            obs = model.get_prediction(obs, candidate_action_sequences[:, t, :], self.data_statistics)
+            obs = obs.detach().cpu().numpy()
+
         # For each candidate action sequence, predict a sequence of
         # states for each dynamics model in your ensemble.
         # Once you have a sequence of predicted states from each model in
